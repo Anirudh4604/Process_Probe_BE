@@ -5,7 +5,7 @@ from langchain.schema import (HumanMessage, AIMessage, SystemMessage)
 def fetch_all_usernames():
     # Use the Django ORM to query the llm_messages model for usernames
     usernames = llm_messages.objects.values_list('username', flat=True)
-    print(list(usernames))
+    # print(list(usernames))
     return list(usernames)
 
 
@@ -26,8 +26,8 @@ def add_new_entry(user_name, messages):
 
     if user_name not in all_users:
         print("It is a new user")
-        print(user_name)
-        print(all_users)
+        # print(user_name)
+        # print(all_users)
         new_messages = message_list
         # Create a new llm_messages object and save it to the database
         new_entry = llm_messages(username=user_name, messages=new_messages)
@@ -67,7 +67,7 @@ def add_new_entry_extra_responses(extra_responses, username_val):
         if existing_entry:
             # Update existing entry
             existing_record = ConversationHistory.objects.get(username=username_val)
-            print(existing_record.extra_responses)
+            # print(existing_record.extra_responses)
             if len(existing_record.extra_responses)>1:
                 existing_extra_responses = eval(existing_record.extra_responses)
                 combined_extra_resp = existing_extra_responses + extra_responses
@@ -146,7 +146,7 @@ def add_new_entry_all_questions(all_questions, username_val):
         if existing_entry:
             # Update existing entry
             existing_record = ConversationHistory.objects.get(username=username_val)
-            print(existing_record.all_questions)
+            # print(existing_record.all_questions)
             if len(existing_record.all_questions)>1:
                 existing_all_questions = eval(existing_record.all_questions)
                 combined_extra_ques = existing_all_questions + all_questions
@@ -183,13 +183,13 @@ def retrieve_all_questions(username_val):
     if len(existing_record.all_questions)>1:
 
         existing_all_questions = eval(existing_record.all_questions)
+
         
         return existing_all_questions
     
     else: 
         return []
-
-
+    
 
 def retrieve_all_extra_responses(username_val): 
     existing_record = ConversationHistory.objects.get(username=username_val) 
@@ -206,4 +206,11 @@ def retrieve_all_ques_answers(username_val):
         return existing_ques_answers 
     else: 
         return [] 
+
+
+
+
+
+
+
 

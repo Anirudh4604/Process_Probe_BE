@@ -136,14 +136,26 @@ def question(request):
         username=request.data.get('user_name')
         run = GetSurveyAnswersFromUser(username=username)
         output = run.get_response_for_survey_ques(user_name_val=username)
-        final_resp=output.split('''"Final response" :''')
-        if len(final_resp)==1:
-            if(final_resp[0]=='All questions asked'):
-                final_resp=final_resp[0]
+        
+        try:
+            final_resp=output.split('''"Final response":''')
+            if len(final_resp)==1:
+                if(final_resp[0]=='All questions asked'):
+                    final_resp=final_resp[0]
+                else:
+                    final_resp=final_resp[0].split('''{"Thought" :''')[1][:-1]
             else:
-                final_resp=final_resp[0].split('''{"Thought" :''')[1][:-1]
-        else:
-            final_resp=final_resp[1][:-1]
+                final_resp=final_resp[1][:-1]
+        except:
+            final_resp=output.split('''"Final response" :''')
+            if len(final_resp)==1:
+                if(final_resp[0]=='All questions asked'):
+                    final_resp=final_resp[0]
+                else:
+                    final_resp=final_resp[0].split('''{"Thought" :''')[1][:-1]
+            else:
+                final_resp=final_resp[1][:-1]
+            
         return JsonResponse({"status":"success", 
                                 "llm_response":f"{final_resp}"})                                                                             
                                                   
@@ -153,31 +165,56 @@ def question(request):
 @api_view(['POST'])
 def get_llm_response_for_survey_ques(request): 
     if request.method == 'POST':
-        # try:
-        human_response=request.data.get('human_text')
-        username=request.data.get('username')
+        try:
+            human_response=request.data.get('human_text')
+            username=request.data.get('username')
 
-            # data = json.loads(request.body.decode('utf-8'))
-            # print(f"this is {data}")
-            # keys_list = list(data.keys())
-            # print(f"these are {keys_list}")
+                # data = json.loads(request.body.decode('utf-8'))
+                # print(f"this is {data}")
+                # keys_list = list(data.keys())
+                # print(f"these are {keys_list}")
 
-            # if 'human_text' in keys_list and 'username' in keys_list: 
-            #     username = data['username']
-            #     human_response = data['human_text']
-        run = GetSurveyAnswersFromUser(username=username)
-        output = run.get_response_for_survey_ques(human_text=human_response, user_name_val=username)
-   
-        final_resp=output.split('''"Final response" :''')
-        if len(final_resp)==1:
-            if(final_resp[0]=='All questions asked'):
-                final_resp=final_resp[0]
+                # if 'human_text' in keys_list and 'username' in keys_list: 
+                #     username = data['username']
+                #     human_response = data['human_text']
+            run = GetSurveyAnswersFromUser(username=username)
+            output = run.get_response_for_survey_ques(human_text=human_response, user_name_val=username)
+            final_response = ""
+            print(f"debugukkkkkk{output}")
+            responses = output.split('''}        {''')
+            if len(responses) == 1 :
+                final_response = output
             else:
-                final_resp=final_resp[0].split('''{"Thought" :''')[1][:-1]
-        else:
-            final_resp=final_resp[1][:-1]
-        return JsonResponse({"status":"success", 
-                                "llm_response":f"{final_resp}"})    
+                for output in responses:
+                    try:
+                        final_resp=output.split('''"Final response":''')
+                        if len(final_resp)==1:
+                            if(final_resp[0]=='All questions asked'):
+                                final_resp=final_resp[0]
+                            else:
+                                final_resp=final_resp[0].split('''{"Thought" :''')[1][:-1]
+                        else:
+                            final_resp=final_resp[1][:-1]
+
+                    except:
+                        final_resp=output.split('''"Final response" :''')
+                        if len(final_resp)==1:
+                            if(final_resp[0]=='All questions asked'):
+                                final_resp=final_resp[0]
+                            else:
+                                final_resp=final_resp[0].split('''{"Thought" :''')[1][:-1]
+                        else:
+                            final_resp=final_resp[1][:-1]
+
+
+                    print(f'debugu{final_resp}')
+                    final_response+=final_resp
+                    print(f'debuguk{final_response}')
+            
+            print(f'debugukkk{final_response}')
+
+            return JsonResponse({"status":"success", 
+                                    "llm_response":f"{final_response}"})    
 
             # elif 'human_text' not in keys_list and 'username' in keys_list: 
             #     username = data['username']
@@ -190,10 +227,9 @@ def get_llm_response_for_survey_ques(request):
         #         return JsonResponse({"status":"failed",
         #                              "error message" : "The payload should contain the username in the specified JSON format with correct key names."})
 
-        # except json.JSONDecodeError as e:
-        #     return HttpResponse("Invalid JSON data", status=400)
+        except Exception as e: 
+            return Response({"message": str(e)}, status=500) 
 
-    return HttpResponse("The method is not POST")
 
 
 @api_view(['POST'])
@@ -225,14 +261,14 @@ def get_extra_messages(request):
 @api_view(['GET']) 
 def structured_questions_answers(request): 
     username = request.query_params.get('username') 
-    # try: 
-    survey_instance = GetSurveyAnswersFromUser(username=username) 
-    structured_data = survey_instance.get_structured_ques_answers(username) 
-    print(f"structured_data{structured_data}")
-    return JsonResponse({"status":"success", 
-                            "message":structured_data})  
-    # except Exception as e: 
-    #     return JsonResponse({'message': str(e)}, status=400) 
+    try: 
+        survey_instance = GetSurveyAnswersFromUser(username=username) 
+        structured_data = survey_instance.get_structured_ques_answers(username) 
+       
+        return JsonResponse({"status":"success", 
+                                "message":structured_data})  
+    except Exception as e: 
+        return JsonResponse({'message': 'username not provided'}, status=400) 
 
 
 @api_view(['POST'])

@@ -60,43 +60,14 @@ class CAMELAgent:
 
     def store_messages(self):
         return self.stored_messages
-
+    
+## Question Sample: "what is your favorite food?", "In which year did you buy your car?", "What is the size of your tshirt?", "From where have you completed your engineering?", "where do you park your car?", "when do you wake up in the morning?"
 
 class AllAgents:
 
     def __init__(self) -> None:
-        # self.questions = ["what is your name?", "How many glasses of water do you drink in a day?", "who is your favorite actor?", "which is your favorite city", "In which year did you buy your car?"]
-        self.questions = ['''Which AWS compute service have you found most user-friendly for deploying applications?
-                            Options:
-                            1. EC2 (Elastic Compute Cloud)
-                            2. Lambda
-                            3. Elastic Beanstalk
-                            4. ECS (Elastic Container Service)''', 
-                            '''Which AWS storage service do you prefer for storing and managing large amounts of data?
-                            Options:
-                            1. S3 (Simple Storage Service)
-                            2. EBS (Elastic Block Store)
-                            3. Glacier
-                            4. EFS (Elastic File System)''',
-                            '''Which AWS database service do you find most suitable for your application's data needs?
-                            Options:
-                            1. RDS (Relational Database Service)
-                            2. DynamoDB
-                            3. Aurora
-                            4. Redshift''',
-                            '''Which AWS networking service do you find most effective for managing your application's network resources?
-                            Options:
-                            1. VPC (Virtual Private Cloud)
-                            2. CloudFront
-                            3. Route 53 (DNS Service)
-                            4. API Gateway''',
-                            '''Which AWS security service have you found most reliable in ensuring the safety of your resources?
-                            Options:
-                            1. IAM (Identity and Access Management)
-                            2. Cognito
-                            3. KMS (Key Management Service)
-                            4. WAF (Web Application Firewall)''']
-        # print(f"The list of questions: {self.questions}")
+        self.questions = ["Do you own more than one vehicle?", "Do you always use your turn signals while taking turns?", "Do you drive under the speed limit of 100km/hour?", "Do you talk on the phone while you drive?", "Do you let other people borrow your car?", "Do you have any young drivers in your household?"]
+        print(f"The list of questions: {self.questions}")
         self.llm = AzureChatOpenAI(temperature=0.0, 
                             openai_api_key= os.getenv("OPENAI_API_KEY"),
                             openai_api_base=os.getenv("OPENAI_API_BASE"),
@@ -107,7 +78,7 @@ class AllAgents:
 
     def take_answer_agent(self):
 
-        sys_msg_for_answragent = SystemMessage(content='''Your task is to get the answer from human for the given question. You will try to find the most closest and accurate option from the human answer. If in case, you don't find the answer in the human response, you will repeat the question until the user gives the appropriate or closest answer from given options. If the human answer is correct, you will return "I got the answer."
+        sys_msg_for_answragent = SystemMessage(content='''You will be taking the insurance survey from user in a conversational tone. You will be thanking the user in case he/she answers your question, and before asking the question, you will give a little brief of what you are trying to do. You will analyze the human answer and then try to find the most closest and accurate answer from the human response. If in case, you could not extract any answer in the human response, you will repeat the question until the user gives the appropriate or closest answer. If the human answer is correct, you will return "I got the answer."
 
         Your output should be as per the given format                               
         <Format of Output>
@@ -121,166 +92,171 @@ class AllAgents:
         agent_for_answering = CAMELAgent(sys_msg_for_answragent, self.llm, None)
 
         human_msg_for_agent = HumanMessage(content='''
-        Avoid repeating the question to confirm. 
-        Instruction: Ask human this -> Which data structure is best suited for implementing a LIFO (Last In, First Out) behavior?
-        Options:
-                1. Stack
-                2. Queue
-                3. Linked List
-                4. Tree 
+        Avoid repeating the question to confirm.
+        Instruction: Ask human this -> Are you currently insured? If so, what type of insurance do you have?
         Your response:''')
 
         agent_for_answering.update_messages(message=human_msg_for_agent)
 
         AI_msg_for_agent = AIMessage(content='''
         {
-            "Thought" : "I have to simply ask the question dircetly",
-            "Final response" : "Which data structure is best suited for implementing a LIFO (Last In, First Out) behavior?
-        Choose any of the following Options:
-                1. Stack
-                2. Queue
-                3. Linked List
-                4. Tree"
+            "Thought" : "I have to simply ask the question but have to give a short brief set up to the question that i am going to ask",
+            "Final response": "With this question i would like to know about your insurance cover, and past experiences
+            
+            So can you answer: Are you currently insured? If so, what type of insurance do you have?"
         }''')
 
         agent_for_answering.update_messages(message=AI_msg_for_agent)
 
         human_msg_for_agent = HumanMessage(content='''Here is the human response. If the answer is there in human response and if it is correct, you will return "I got the answer."
-        Human response: I have read about the Stack and Queue. I feel Tree is one datastructure that is best suited.
+        Human response: Well last year i bought car insurance
         Your response:''')
 
         agent_for_answering.update_messages(message=human_msg_for_agent)
 
         AI_msg_for_agent = AIMessage(content='''{
-            "Thought" : "I have to check human response. The human response has answer to the question. From human response I can find the most closest and accurate option human has choosed is option 4. So, i need to respond with 'I got the answer.'",
-            "Final response" : "Thank you for answering. I got my answer."
+            "Thought" : "I have to analyse the human answer and try to find the answer to the question. So the human said that he bought car insurance last year, so it means the human is insured with the insurance and type of insurance is 'car insurance'",
+            "Final response" : "Okay. So, you are insured and the type of insurance you have is 'Car Insurance'. Thankyou for your answer. I got the answer"
         }''')
 
         agent_for_answering.update_messages(message=AI_msg_for_agent)
 
+        human_msg_for_agent = HumanMessage(content='''
+        Avoid repeating the question to confirm.
+        Instruction: Ask human this -> Have you ever filed a claim with your insurance company? If yes, please briefly describe the experience.
+        Your response:''')
+
+        agent_for_answering.update_messages(message=human_msg_for_agent)
+
+        AI_msg_for_agent = AIMessage(content='''
+        {
+            "Thought" : "I have to ask the question again. I have to give a short brief set up to the question that i am going to ask",
+            "Final response": "with this question, i would like to know about your past experince with your insurance company.
+ 
+            So can you please answer: Have you ever filed a claim with your insurance company? If yes, please briefly describe the experience. "
+        }''')
+
+        agent_for_answering.update_messages(message=AI_msg_for_agent)
+
+        human_msg_for_agent = HumanMessage(content='''Here is the human response. If the answer is there in human response and if it is correct, you will return "I got the answer."
+        Human response: I think last year, in november i met with a minor car accident and in that scenrio i went to the insurance company for claim
+        Your response:''')
+
+        agent_for_answering.update_messages(message=human_msg_for_agent)
+
+        AI_msg_for_agent = AIMessage(content='''{
+            "Thought" : "I have to analyse the human answer and try to find the answer to the question. So the human said that he went to insurance company for minor car accident claim. So, the human has answered that he filed the claim, but yet has not described his experience.",
+            "Final response" : "Thankyou for your response. I can see that you filed the claim for minor accident, but it will be great if you could briefly describe the experience as well (if the claim process was smooth or if it was hard)"
+        }''')
+
+        agent_for_answering.update_messages(message=AI_msg_for_agent)
+
+        human_msg_for_agent = HumanMessage(content='''Here is the human response. If the answer is there in human response and if it is correct, you will return "I got the answer."
+        Human response: The process was mostly smooth 
+        Your response:''')
+
+        agent_for_answering.update_messages(message=human_msg_for_agent)
+
+        AI_msg_for_agent = AIMessage(content='''{
+            "Thought" : "I have to analyse the human answer and try to find the answer to the question. So the human said that the process was mostly smooth. This means that the user filed the claim and it was mostly smooth with his insurance company for minor car accident",
+            "Final response" : "Okay. So, you filed the claim for minor accident and the process of claim was mostly smooth'. Thankyou for your answer. I got the answer, let's move on to the next question now."
+        }''')
+
+        agent_for_answering.update_messages(message=AI_msg_for_agent)
 
         ########## Example 2
 
         human_msg_for_agent = HumanMessage(content='''
-        Avoid repeating the question to confirm. 
-        Instruction: Ask human this -> For sorting a large dataset with a moderate memory footprint, which algorithm do you prefer?
-            Options:
-            1. Merge Sort
-            2. Quick Sort
-            3. Bubble Sort
-            4. Selection Sort 
+        Avoid repeating the question to confirm. written that it is the first question.
+        Instruction: Ask human this -> How important do you consider health insurance to be?
         Your response:''')
 
         agent_for_answering.update_messages(message=human_msg_for_agent)
 
         AI_msg_for_agent = AIMessage(content='''
         {
-            "Thought" : "I have to simply ask the question dircetly",
-            "Final response" : "For sorting a large dataset with a moderate memory footprint, which algorithm do you prefer?
-            Options:
-                1. Merge Sort
-                2. Quick Sort
-                3. Bubble Sort
-                4. Selection Sort"
+            "Thought" : "I have to simply ask the question but have to give a short brief set up to the question that i am going to ask",
+            "Final response": "
+            I would like to inquire about your medical insurance-related preferences and experiences.
+            
+            So can you answer: How important do you consider health insurance to be?"
         }''')
 
         agent_for_answering.update_messages(message=AI_msg_for_agent)
 
         human_msg_for_agent = HumanMessage(content='''Here is the human response. If the answer is there in human response and if it is correct, you will return "I got the answer."
-        Human response: explain sorting
+        Human response: I think health insurance is important and everyone should have it
         Your response:''')
 
         agent_for_answering.update_messages(message=human_msg_for_agent)
 
         AI_msg_for_agent = AIMessage(content='''{
-            "Thought" : "I have to check human response. The human response doesn't include any answer but it has a query from user. I will respond to the query, but i will also ask the question again.'",
-            "Final response" : "Sorting is the process of arranging elements in a specific order, often in an ascending or descending sequence, based on certain criteria or rules. It is a fundamental operation in computer science and is used in various applications and algorithms.
-                                     
-            but can you please answer the question that i asked, 
-                                     
-            Question: or sorting a large dataset with a moderate memory footprint, which algorithm do you prefer?
-            Options:
-                1. Merge Sort
-                2. Quick Sort
-                3. Bubble Sort
-                4. Selection Sort"
+            "Thought" : "I have to analyse the human answer and try to find the answer to the question. So the human said that it is important and everyone should have it. This means that the user finds health insurance important",
+            "Final response" : "Yes. In today's time health insurance is really important. Thankyou for your answer. I got the answer, let's move on to the next question now."
         }''')
 
         agent_for_answering.update_messages(message=AI_msg_for_agent)
 
-
-        human_msg_for_agent = HumanMessage(content='''Here is the human response. If the answer is there in human response and if it is correct, you will return "I got the answer."
-        Human response: I don't get it all, why are you doing this. I don't like it.
+        human_msg_for_agent = HumanMessage(content='''
+        Avoid repeating the question to confirm.
+        Instruction: Ask human this -> Do you currently have health insurance coverage?
         Your response:''')
 
         agent_for_answering.update_messages(message=human_msg_for_agent)
 
-        AI_msg_for_agent = AIMessage(content='''{
-            "Thought" : "I have to check human response. The human response doesn't include any answer but it has a statement from the user. I will respond to the statment, but i will also ask the question again.'",
-            "Final response" : "Sorry for causing you the inconvenience. I have been asked to take this survey. If you don't want to take this survey you can quit the survey anytime on your own.  
-
-            but since my task is to get the answer from you, can you please answer the question that i asked, 
-                                     
-            Question: or sorting a large dataset with a moderate memory footprint, which algorithm do you prefer?
-            Options:
-                1. Merge Sort
-                2. Quick Sort
-                3. Bubble Sort
-                4. Selection Sort"
+        AI_msg_for_agent = AIMessage(content='''
+        {
+            "Thought" : "I have to ask the question again. I have to give a short brief set up to the question that i am going to ask",
+            "Final response": "Sine we are talking about health insurance, with this question, i would like to ask you about your current insurance coverage. 
+ 
+            So can you please answer: Do you currently have health insurance coverage?"
         }''')
 
         agent_for_answering.update_messages(message=AI_msg_for_agent)
 
         human_msg_for_agent = HumanMessage(content='''Here is the human response. If the answer is there in human response and if it is correct, you will return "I got the answer."
-        Human response: Explain all the options to me
+        Human response: I have been associated with insurance provider for last 10 months.
         Your response:''')
 
         agent_for_answering.update_messages(message=human_msg_for_agent)
 
         AI_msg_for_agent = AIMessage(content='''{
-            "Thought" : "I have to check human response. The human response doesn't include any answer but it has a statement from the user. I will respond to the statment, but i will also ask the question again.'",
-            "Final response" : " Sure. I can give you a brief explain of every point. 
-            Merge Sort:
-            Merge Sort is a popular comparison-based sorting algorithm that divides an array into smaller subarrays, sorts those subarrays, and then merges them back together to produce a sorted array. It follows the "divide and conquer" approach, where the array is repeatedly divided until it consists of single elements. Then, it merges these smaller arrays while sorting them simultaneously. Merge Sort is known for its stability and consistent performance, making it a reliable choice for sorting large datasets. However, it requires additional memory for the merging process, which can be a drawback in constrained environments.
+            "Thought" : "I have to analyse the human answer and try to find the answer to the question. So the human said that he is associated with insurance provider for last 10 months. This means that he bought insurance coverage 10 months back and currently he has health insurance coverage",
+            "Final response" : "Thankyou for your answer. I can see that you have health insurance coverage for past 10 months. I got the answer."
+        }''')
 
-            Quick Sort:
-            Quick Sort is another efficient sorting algorithm that also uses the divide and conquer strategy. It works by selecting a "pivot" element from the array and partitioning the other elements into two subarrays: those less than the pivot and those greater than the pivot. The subarrays are then recursively sorted. Quick Sort is known for its fast average-case performance, often outperforming other sorting algorithms. However, its worst-case performance can be poor if the pivot selection is not well-balanced, leading to a time complexity of O(n^2).
+        agent_for_answering.update_messages(message=AI_msg_for_agent)
 
-            Bubble Sort:
-            Bubble Sort is a simple sorting algorithm that repeatedly steps through the list, compares adjacent elements, and swaps them if they are in the wrong order. The pass-through the list is repeated until no swaps are needed, indicating that the list is sorted. While Bubble Sort is straightforward to understand and implement, it is not very efficient, especially for large datasets. Its average and worst-case time complexity is O(n^2), which makes it impractical for sorting large arrays.
+        human_msg_for_agent = HumanMessage(content='''
+        Avoid repeating the question to confirm.
+        Instruction: Ask human this -> What is your preferred option to get information on your health insurance? 
+        Your response:''')
 
-            Selection Sort:
-            Selection Sort is another elementary sorting algorithm that divides the input list into two parts: the sorted part and the unsorted part. It repeatedly selects the smallest (or largest, depending on the sorting order) element from the unsorted part and moves it to the end of the sorted part. This process continues until the entire list is sorted. Selection Sort is simple to implement and has a consistent time complexity of O(n^2) regardless of the input data. However, it is not very efficient for large datasets, and there are more efficient sorting algorithms available.
+        agent_for_answering.update_messages(message=human_msg_for_agent)
 
-            As per your request i have explained all the options but, can you please answer the question that i asked, 
+        AI_msg_for_agent = AIMessage(content='''
+        {
+            "Thought" : "I have to ask the question again. I have to give a short brief set up to the question that i am going to ask",
+            "Final response": "I would like to know about your preferences to receive the information.
                                      
-            Question: or sorting a large dataset with a moderate memory footprint, which algorithm do you prefer?
-            Options:
-                1. Merge Sort
-                2. Quick Sort
-                3. Bubble Sort
-                4. Selection Sort"
+            So can you please answer: What is your preferred option to get information on your health insurance?"
         }''')
 
         agent_for_answering.update_messages(message=AI_msg_for_agent)
 
         human_msg_for_agent = HumanMessage(content='''Here is the human response. If the answer is there in human response and if it is correct, you will return "I got the answer."
-        Human response: end the survey, stop the survey
+        Human response: I think multiple insurance companies are there in the market.
         Your response:''')
 
         agent_for_answering.update_messages(message=human_msg_for_agent)
 
         AI_msg_for_agent = AIMessage(content='''{
-            "Thought" : "I have to check human response. The human response doesn't include any answer but it has a statement from the user. I will respond to the statment, but i will also ask the question again.'",
-            "Final response" : " I understand you are not interested in the survey, but this is my job to keep asking the questions. You can click on the "End" button to end or stop the survey, but untill then, i will ask you the question.    
-            Question: or sorting a large dataset with a moderate memory footprint, which algorithm do you prefer?
-            Options:
-                1. Merge Sort
-                2. Quick Sort
-                3. Bubble Sort
-                4. Selection Sort"
+            "Thought" : "I have to analyse the human answer and try to find the answer to the question. So the human said that there are multiple companies in the market. This talks about competition, but is no where related to the question that was asked about the preference to receive the information.",
+            "Final response" : "Thankyou for your response but i could not understand how multiple companies in the market is related to preference to receive the preference to receive the information. Can you please answer my question again?
+            here is my question: What is your preferred option to get information on your health insurance? "
         }''')
 
         agent_for_answering.update_messages(message=AI_msg_for_agent)
+
 
         return agent_for_answering
