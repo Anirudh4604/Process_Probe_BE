@@ -30,6 +30,8 @@ class ConversationHistory(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     extra_responses = models.TextField()
     all_questions = models.TextField(null=True)
+    all_generated_questions = models.TextField(null=True)
+    all_answered_questions = models.TextField(null=True)
 
     def __str__(self):
         return f'{self.username} - {self.messages}'

@@ -139,6 +139,7 @@ def add_new_entry_ques_answers(ques_answers, username_val):
 
 
 def add_new_entry_all_questions(all_questions, username_val):
+
     try:
         # Check if there is an existing entry with extra_responses for the username
         existing_entry = ConversationHistory.objects.filter(username=username_val, all_questions__isnull=False).exists()
@@ -153,7 +154,7 @@ def add_new_entry_all_questions(all_questions, username_val):
                 existing_record.all_questions = str(combined_extra_ques)
                 existing_record.save()
             else: 
-                existing_record.extra_responses = str(all_questions)
+                existing_record.all_questions = str(all_questions)
                 existing_record.save()
 
         else:
@@ -162,7 +163,7 @@ def add_new_entry_all_questions(all_questions, username_val):
 
             if existing_record:
                 # Update existing entry
-                existing_record.extra_responses = str(all_questions)
+                existing_record.all_questions = str(all_questions)
                 existing_record.save()
             else:
                 # Create a new entry
@@ -174,6 +175,63 @@ def add_new_entry_all_questions(all_questions, username_val):
 
     return None
 
+
+def add_new_entry_generated_questions(all_generated_questions, username_val):
+
+    try:
+        # Check if there is an existing entry with extra_responses for the username
+        existing_entry = ConversationHistory.objects.filter(username=username_val, all_generated_questions__isnull=False).exists()
+
+        if existing_entry:
+            # Update existing entry
+            existing_record = ConversationHistory.objects.get(username=username_val)
+            # print(existing_record.all_questions)
+            if len(existing_record.all_generated_questions)>1:
+                existing_all_questions = eval(existing_record.all_generated_questions)
+                combined_extra_ques = existing_all_questions + all_generated_questions
+                existing_record.all_generated_questions = str(combined_extra_ques)
+                existing_record.save()
+                return combined_extra_ques
+            else: 
+                existing_record.all_generated_questions = str(all_generated_questions)
+                existing_record.save()
+                return all_generated_questions
+
+        else:
+            # Check if there is any entry for the username
+            existing_record = ConversationHistory.objects.filter(username=username_val).first()
+
+            if existing_record:
+                # Update existing entry
+                existing_record.all_generated_questions = str(all_generated_questions)
+                existing_record.save()
+                return all_generated_questions
+            else:
+                # Create a new entry
+                new_entry = ConversationHistory(username=username_val, all_generated_questions=str(all_generated_questions))
+                new_entry.save()
+                return all_generated_questions
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
+def retrieve_all_generated_questions(username_val):
+
+    try: 
+        existing_record = ConversationHistory.objects.get(username=username_val)
+
+        if len(existing_record.all_generated_questions)>1:
+
+            existing_all_generated_questions = eval(existing_record.all_generated_questions)
+
+            return existing_all_generated_questions
+        
+        else: 
+            return []
+    except: 
+        return []
+    
 
 
 def retrieve_all_questions(username_val):
@@ -205,9 +263,7 @@ def retrieve_all_ques_answers(username_val):
         existing_ques_answers = eval(existing_record.messages) 
         return existing_ques_answers 
     else: 
-        return [] 
-
-
+        return {}
 
 
 

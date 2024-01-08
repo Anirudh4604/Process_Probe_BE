@@ -135,7 +135,9 @@ def question(request):
     if request.method == 'POST':
         username=request.data.get('user_name')
         run = GetSurveyAnswersFromUser(username=username)
-        output = run.get_response_for_survey_ques(user_name_val=username)
+        complete_output = run.get_response_for_survey_ques(user_name_val=username)
+        output = complete_output['llm_response']
+        status_output = complete_output['current_status']
         
         try:
             final_resp=output.split('''"Final response":''')
@@ -157,10 +159,9 @@ def question(request):
                 final_resp=final_resp[1][:-1]
             
         return JsonResponse({"status":"success", 
-                                "llm_response":f"{final_resp}"})                                                                             
+                                "llm_response":f"{final_resp}",
+                                "status_output": status_output})                                                                             
                                                   
-
-
 @csrf_exempt
 @api_view(['POST'])
 def get_llm_response_for_survey_ques(request): 
@@ -179,11 +180,12 @@ def get_llm_response_for_survey_ques(request):
                 #     human_response = data['human_text']
             run = GetSurveyAnswersFromUser(username=username)
             output = run.get_response_for_survey_ques(human_text=human_response, user_name_val=username)
+            status_output = output['current_status']
             final_response = ""
-            print(f"debugukkkkkk{output}")
-            responses = output.split('''}        {''')
+            print(f"debugukkkkkk{output['llm_response']}")
+            responses = output['llm_response'].split('''}        {''')
             if len(responses) == 1 :
-                final_response = output
+                final_response = output['llm_response']
             else:
                 for output in responses:
                     try:
@@ -214,7 +216,8 @@ def get_llm_response_for_survey_ques(request):
             print(f'debugukkk{final_response}')
 
             return JsonResponse({"status":"success", 
-                                    "llm_response":f"{final_response}"})    
+                                    "llm_response":f"{final_response}",
+                                    "status_output": status_output})    
 
             # elif 'human_text' not in keys_list and 'username' in keys_list: 
             #     username = data['username']
@@ -228,8 +231,8 @@ def get_llm_response_for_survey_ques(request):
         #                              "error message" : "The payload should contain the username in the specified JSON format with correct key names."})
 
         except Exception as e: 
+            print("Got error here")
             return Response({"message": str(e)}, status=500) 
-
 
 
 @api_view(['POST'])
@@ -240,7 +243,6 @@ def messages(request):
         msg.save()
         return JsonResponse({'message':'success'})
     
-
 
 @api_view(['GET']) 
 def get_extra_messages(request):
@@ -278,75 +280,33 @@ def index(request):
         student_form = StudentForm(request.POST, request.FILES)
 
         if student_form.is_valid():
-
             firstname = student_form.cleaned_data['firstname']
-
             uploaded_file = request.FILES['file']
-
-            
-
             # Define the local file path where the uploaded file will be saved
-
             file_path = os.path.join('audio_files/', uploaded_file.name)
-
-            
-
             # Save the uploaded file to the local directory
-
             with open(file_path, 'wb') as destination:
-
                 for chunk in uploaded_file.chunks():
-
                     destination.write(chunk)
-
- 
-
             # Check if a record with the same 'firstname' already exists
-
             try:
-
                 transcribed_audio = TranscribedAudio.objects.get(firstname=firstname)
-
             except TranscribedAudio.DoesNotExist:
 
                 transcribed_audio = TranscribedAudio(firstname=firstname)
-
- 
-
             # Update the URL to point to the local file path
-
             transcribed_audio.file = file_path
-
- 
-
             # Process the uploaded file (assuming you have a transcribe function)
-
             start_time = time.time()
-
             text = transcribe(file_path)
-
             end_time = time.time()
-
             total_time = end_time - start_time
-
             print(text)
-
             print("\n")
-
             print("Total time taken: {:.2f} seconds".format(total_time))
-
- 
-
             # Update the transcribed text for the existing record
-
             transcribed_audio.transcribed_text = text
-
             transcribed_audio.save()
-
- 
-
             return JsonResponse({"status": "success", "transcribed_text": text})
-
         else:
-
             return JsonResponse({"status": "failed", "error_message": "Form is not valid."}, status=400)

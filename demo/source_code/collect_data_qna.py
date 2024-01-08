@@ -12,9 +12,11 @@ from langchain.vectorstores import Pinecone
 import os
 
 from .all_agents import AllAgents
-from .database import retrieve_table, add_new_entry, add_new_entry_extra_responses, add_new_entry_ques_answers, retrieve_all_questions, add_new_entry_all_questions, retrieve_all_extra_responses, retrieve_all_ques_answers
+from .database import retrieve_table, add_new_entry, add_new_entry_extra_responses, add_new_entry_ques_answers, retrieve_all_questions, add_new_entry_all_questions, retrieve_all_extra_responses, retrieve_all_ques_answers, retrieve_all_generated_questions, add_new_entry_generated_questions
+
 from .load_model import ModelHuggingFace
 import json
+from langsmith import Client
 
 
 model_instance_hf = ModelHuggingFace.load_model_here()
@@ -25,10 +27,12 @@ class QuesAnswer:
         
     def __init__(self) -> None:
         load_dotenv()
+        client = Client()
         pinecone.init(api_key=os.getenv("PINECONE_API"),
                       environment=os.getenv("PINECONE_ENV"))
         self.all_answers = {}
         self.username = ""
+        self.all_generated_questions = []
         self.initialized_all_agents = AllAgents()
         self.agent_for_taking_answers = self.initialized_all_agents.take_answer_agent()
         self.index_name = 'newquesanswer'
@@ -40,13 +44,15 @@ class QuesAnswer:
         self.embed_model = model_instance_hf
         self.vectorstore = Pinecone(
                             self.index, self.embed_model.embed_query, 'text')
+        self.llm = AzureChatOpenAI(
+                    headers={
+                    "User-Id": f"{os.getenv('USER_ID')}"
+                    },
+                    temperature=0.0,
+                    deployment_name="GPT35",
+                    model="gpt-35-turbo",
+                )
         
-        self.llm = AzureChatOpenAI(temperature=0.0, 
-                            openai_api_key= os.getenv("OPENAI_API_KEY"),
-                            openai_api_base=os.getenv("OPENAI_API_BASE"),
-                            openai_api_type= os.getenv("OPENAI_API_TYPE"),
-                            openai_api_version=os.getenv("OPENAI_API_VERSION"), 
-                            deployment_name=os.getenv("DEPLOYMENT_NAME"))
         pass
 
     def update_data_in_pinecone(self, meta_data, text_embeddings, answer_id):
@@ -127,19 +133,33 @@ class QuesAnswer:
         
         return review_result
     
-    def get_first_ques(self):
-
-        agent_reply = self.initialized_all_agents.questions[0]
-
-        return agent_reply
+    def get_first_ques(self, username_val):
+        # agent_reply = self.initialized_all_agents.questions[0]
+        generated_questions = retrieve_all_generated_questions(username_val=username_val)
+        if len(generated_questions)>1:
+            print(f"Retrieved generated question in get_first_ques {generated_questions}") 
+            self.all_generated_questions = generated_questions
+            return generated_questions[0]
+        elif len(generated_questions)<1: 
+            print("generating ques from get_questions_list")
+            generated_questions = self.initialized_all_agents.get_questions_list(problem_statement=os.getenv("PROBLEM_STATEMENT_2"))
+            add_new_entry_generated_questions(all_generated_questions=generated_questions, username_val=username_val)
+            self.all_generated_questions = generated_questions
+            return generated_questions[0]
+        else: 
+            print("problem in getting first question")
+            return None  
     
-    def get_next_ques(self, previous_question):
+    def get_next_ques(self, previous_question, username_val):
+
+        generated_questions = retrieve_all_generated_questions(username_val=username_val)
+        self.all_generated_questions = generated_questions
 
         element_to_find = previous_question
-        index = self.initialized_all_agents.questions.index(element_to_find)
+        index = generated_questions.index(element_to_find)
 
         try: 
-            agent_reply = self.initialized_all_agents.questions[index+1]
+            agent_reply = generated_questions[index+1]
         except Exception as e: 
             if "list index out of range" in str(e):
                 agent_reply = "All questions asked"
@@ -161,11 +181,23 @@ class QuesAnswer:
             if "Found in vector store" in ques_review:
                 print("It was found in vector store")
                 print("Getting another question")
-                return self.get_next_ques(agent_reply)
+                return self.get_next_ques(previous_question=agent_reply, username_val=username_val)
                 
             elif "Not found in vector store" in ques_review:
                 print("Not found in vector store.")
                 return agent_reply
+            
+    def get_current_ques_answer_status(self, username_val):
+
+        total_questions = self.all_generated_questions
+        existing_ques_answer = retrieve_all_ques_answers(username_val=username_val)
+        answered_questions = list(existing_ques_answer.keys())
+
+        return  {"list of all questions":total_questions,
+                 "list of answered questions":answered_questions,
+                 "total number of questions":len(total_questions),
+                 "total number of answered questions":len(answered_questions)
+                 }
 
 
 class GetSurveyAnswersFromUser:
@@ -180,9 +212,9 @@ class GetSurveyAnswersFromUser:
 
         pass
 
-    def qna_from_user(self):
+    def qna_from_user(self, username_val):
 
-        ques_input = self.initialized_utils.get_first_ques()
+        ques_input = self.initialized_utils.get_first_ques(username_val=username_val)
 
         human_msg_for_answragent = HumanMessage(content=f"""Instruction: Ask human this -> {ques_input} 
                                                             Your question:""")
@@ -210,7 +242,7 @@ class GetSurveyAnswersFromUser:
             
                 # ques_input = input("give question that will come from agent 1:")
                 print("getting next question.......")
-                new_question = self.initialized_utils.get_next_ques(ques_input)
+                new_question = self.initialized_utils.get_next_ques(previous_question=ques_input, username_val=username_val)
                 ques_input = new_question
 
                 if "All questions asked" not in ques_input:
@@ -247,186 +279,100 @@ class GetSurveyAnswersFromUser:
         return self.initialized_utils.all_answers
     
 
-    
     def get_response_for_survey_ques(self, human_text=None, user_name_val=None):
 
- 
-
         if human_text is None:
-
- 
-
-            ques_input = self.initialized_utils.get_first_ques()
-
- 
-
+            ques_input = self.initialized_utils.get_first_ques(username_val=user_name_val)
             self.all_questions.append(ques_input)
-
- 
-
             human_msg_for_answragent = HumanMessage(content=f"""Avoid repeating the question to confirm. written that it is the first question.
 
                                                             Instruction: Ask human this -> {ques_input}
 
                                                             Your question:""")
 
-           
-
             print(human_msg_for_answragent)
-
- 
-
             answr_agent_reply = self.initialized_utils.agent_for_taking_answers.step(human_msg_for_answragent)
-
- 
-
             store_messages = self.initialized_utils.agent_for_taking_answers.store_messages()
-
- 
-
             add_new_entry(user_name=user_name_val, messages=store_messages)
-
- 
-
             add_new_entry_all_questions(all_questions=self.all_questions, username_val=user_name_val)
-
- 
-
-            return answr_agent_reply
-
- 
+            current_status = self.initialized_utils.get_current_ques_answer_status(username_val=user_name_val)
+            return {
+                "llm_response": answr_agent_reply,
+                "current_status": current_status
+                }
 
         if human_text is not None:
 
- 
-
             all_retrieved_questions = retrieve_all_questions(username_val=user_name_val)
-
             current_question = all_retrieved_questions[-1]
-
-           
-
             existing_messages = retrieve_table(user_name=user_name_val)
-
- 
-
             if len(existing_messages) > 0:
-
- 
-
                 self.initialized_utils.agent_for_taking_answers.add_messages(messgaes=existing_messages)
-
-               
-
                 human_msg_for_answragent = HumanMessage(content=f"""Here is the human answer. If the answer is correct, you will return "I got the answer."
 
                                                                     Human answer: {human_text}
 
                                                                     Your response:""")
-
-               
-
                 prev_answr_agent_reply = self.initialized_utils.agent_for_taking_answers.step(human_msg_for_answragent)
-
- 
 
                 self.initialized_utils.upload_single_answer_in_vectorDB(answer_id=f"{current_question}_{human_text}",
 
                                                                             answer_text=human_text,
 
                                                                             question=current_question)
-
- 
-
                 store_messages = self.initialized_utils.agent_for_taking_answers.store_messages()
-
- 
-
                 add_new_entry(user_name=user_name_val, messages=store_messages)
-
- 
-
                 if "I got the answer" in prev_answr_agent_reply:
-
- 
-
                         self.all_ques_answers[f'{current_question}'] = human_text
-
                         self.initialized_utils.all_answers[f'{current_question}'] = human_text
 
                         # ques_input = input("give question that will come from agent 1:")
-
                         print("getting next question.......")
-
-                        new_question = self.initialized_utils.get_next_ques(current_question)
-
+                        new_question = self.initialized_utils.get_next_ques(previous_question=current_question, username_val=user_name_val)
                         ques_input = new_question
-
                         add_new_entry_ques_answers(ques_answers=self.initialized_utils.all_answers,
 
                                                    username_val=user_name_val)
 
- 
-
                         if "All questions asked" not in ques_input:
-
- 
-
                             self.all_questions.append(ques_input)
-
- 
-
                             add_new_entry_all_questions(all_questions=self.all_questions, username_val=user_name_val)
-
- 
-
                             human_msg_for_answragent = HumanMessage(content=f"""Avoid repeating the question to confirm.
 
                                                                         Instruction: Ask human this -> {ques_input}
 
                                                                         Your question:""")
-
-                           
-
                             answr_agent_reply = self.initialized_utils.agent_for_taking_answers.step(human_msg_for_answragent)
-
                             store_messages = self.initialized_utils.agent_for_taking_answers.store_messages()
-
                             add_new_entry(user_name=user_name_val, messages=store_messages)
-
                             print(answr_agent_reply)
-
                             # retrive_thankyou_statement = prev_answr_agent_reply.split()
-
-                            return prev_answr_agent_reply + answr_agent_reply
-
-                       
+                            current_status = self.initialized_utils.get_current_ques_answer_status(username_val=user_name_val)
+                            return {
+                                    "llm_response": prev_answr_agent_reply + answr_agent_reply,
+                                    "current_status": current_status
+                                    }
 
                         else:
-
                             print("All questions asked")
-
-                            return "All questions asked"
-
-               
+                            current_status = self.initialized_utils.get_current_ques_answer_status(username_val=user_name_val)
+                            return {
+                                    "llm_response": "All questions asked",
+                                    "current_status": current_status
+                                    }
 
                 else:
 
- 
-
                     if human_text not in self.all_ques_answers.values():
-
                         self.extra_responses.append(human_text)
-
                         add_new_entry_extra_responses(extra_responses=self.extra_responses,
 
                                                       username_val=user_name_val)
-
- 
-
-                    return prev_answr_agent_reply
-                
-
+                    current_status = self.initialized_utils.get_current_ques_answer_status(username_val=user_name_val)
+                    return {
+                            "llm_response": prev_answr_agent_reply,
+                            "current_status": current_status
+                            }
 
     # def get_response_for_survey_ques(self, human_text=None, user_name_val=None):
 

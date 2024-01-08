@@ -66,19 +66,89 @@ class CAMELAgent:
 class AllAgents:
 
     def __init__(self) -> None:
-        self.questions = ["Do you own more than one vehicle?", "Do you always use your turn signals while taking turns?", "Do you drive under the speed limit of 100km/hour?", "Do you talk on the phone while you drive?", "Do you let other people borrow your car?", "Do you have any young drivers in your household?"]
-        print(f"The list of questions: {self.questions}")
-        self.llm = AzureChatOpenAI(temperature=0.0, 
-                            openai_api_key= os.getenv("OPENAI_API_KEY"),
-                            openai_api_base=os.getenv("OPENAI_API_BASE"),
-                            openai_api_type= os.getenv("OPENAI_API_TYPE"),
-                            openai_api_version=os.getenv("OPENAI_API_VERSION"), 
-                            deployment_name=os.getenv("DEPLOYMENT_NAME"))
-        pass    
+        # self.questions = ["Do you own more than one vehicle?", "Do you always use your turn signals while taking turns?", "Do you drive under the speed limit of 100km/hour?", "Do you talk on the phone while you drive?", "Do you let other people borrow your car?", "Do you have any young drivers in your household?"]
+
+        # self.llm = AzureChatOpenAI(temperature=0.0, 
+        #                     openai_api_key= os.getenv("OPENAI_API_KEY"),
+        #                     openai_api_base=os.getenv("OPENAI_API_BASE"),
+        #                     openai_api_type= os.getenv("OPENAI_API_TYPE"),
+        #                     openai_api_version=os.getenv("OPENAI_API_VERSION"), 
+        #                     deployment_name=os.getenv("DEPLOYMENT_NAME"))
+
+        #Use the following method of initialising LLM object with helicone
+
+        self.llm = AzureChatOpenAI(
+                    headers={
+                    "User-Id": f"{os.getenv('USER_ID')}"
+                    },
+                    temperature=0.0,
+                    deployment_name="GPT35",
+                    model="gpt-35-turbo",
+                )
+        pass   
+
+    def get_questions_list(self, problem_statement):
+
+        print("generting ques list")
+
+        prompt_val = f'''Act as a technical investigating officer, who's task is to investigate by asking questions to find the reason of happening of problem or the cause of problem.
+
+        The output should be in the format given below:
+        [question, 
+        question, ....] 
+
+        for example: 
+            problem: The vehicle took double the time to charge
+            Prepare list of questions as an investigating officer to find the cause of problem. 
+            AI Resp: [
+    "Which vehicle, which charger?",
+    "When was the charging initiated?",
+    "What was the SOC at this time?",
+    "When did the charging end?",
+    "What was the SOC?",
+    "Was there a power failure during this time?",
+    "What is the history of the vehicle?",
+    "What is the history of the charger?",
+    "Prior to this, when was the last time L05 was charged and with which charger?",
+    "Charge details?",
+    "What were the previous charge details for the charger EC02?",
+    "What about subsequent charge for L05?",
+    "What about subsequent charge for EC02?",
+    "Is there a log of current demanded by vehicle, and the actual current provided by charger for the problematic charge?",
+    "Is there a log of errors recorded by the charger?"
+]
+
+    Now, prepare list of only 4 questions to solve another problem:
+        Problem: {problem_statement}
+        Prepare list of questions as a technical investigating officer to find the cause of problem. 
+        AI Resp:'''
+
+        # try: 
+        #     llm_output = self.llm.predict(text=prompt_val)
+        #     print("printing llm output here")
+        #     print(llm_output)
+        #     generated_questions = eval(llm_output)
+        #     if len(generated_questions)>0: 
+        #         return generated_questions
+        # except Exception as e:
+        #     print(e) 
+        #     return ["No questions to ask"]
+
+        
+        llm_output = self.llm.predict(text=prompt_val)
+        print("printing llm output here")
+        print(llm_output)
+        generated_questions = eval(llm_output)
+        print(f"The generated questions are: {generated_questions}")
+        if len(generated_questions)>0: 
+            return generated_questions
+        else:
+            return []
+         
 
     def take_answer_agent(self):
 
-        sys_msg_for_answragent = SystemMessage(content='''You will be taking the insurance survey from user in a conversational tone. You will be thanking the user in case he/she answers your question, and before asking the question, you will give a little brief of what you are trying to do. You will analyze the human answer and then try to find the most closest and accurate answer from the human response. If in case, you could not extract any answer in the human response, you will repeat the question until the user gives the appropriate or closest answer. If the human answer is correct, you will return "I got the answer."
+        sys_msg_for_answragent = SystemMessage(content='''You will be taking the survey from user in a conversational tone. You will be thanking the user in case he/she answers your question, and before asking the question, you will give a little brief of what you are trying to do. You will analyze the human answer and then try to find the most closest and accurate answer from the human response. If in case, you could not extract any answer in the human response, you will repeat the question until the user gives the appropriate or closest answer. If the human answer is correct, you will return "I got the answer."
 
         Your output should be as per the given format                               
         <Format of Output>

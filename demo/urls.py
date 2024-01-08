@@ -13,7 +13,6 @@ urlpatterns = [
     path('messages/',messages,name="messages"),
     path('fill_survey/', get_llm_response_for_survey_ques, name="Survey Ques"),
     path('extra_messages/', get_extra_messages, name='get_extra_messages'), 
-    path('all_ans/',structured_questions_answers,name="answers"), 
+    path('all_ans/',structured_questions_answers,name="answers"),
     path('upload_file/', index, name='upload_music_file'),
-
 ]
