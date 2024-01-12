@@ -134,8 +134,9 @@ def retrieve_table(request):
 def question(request):
     if request.method == 'POST':
         username=request.data.get('user_name')
+        problem_statement = request.data.get('problem_statment')
         run = GetSurveyAnswersFromUser(username=username)
-        complete_output = run.get_response_for_survey_ques(user_name_val=username)
+        complete_output = run.get_response_for_survey_ques(user_name_val=username, prob_statement=problem_statement)
         output = complete_output['llm_response']
         status_output = complete_output['current_status']
         

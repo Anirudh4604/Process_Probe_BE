@@ -177,11 +177,11 @@ def add_new_entry_all_questions(all_questions, username_val):
 
 
 def add_new_entry_generated_questions(all_generated_questions, username_val):
-
+ 
     try:
         # Check if there is an existing entry with extra_responses for the username
         existing_entry = ConversationHistory.objects.filter(username=username_val, all_generated_questions__isnull=False).exists()
-
+ 
         if existing_entry:
             # Update existing entry
             existing_record = ConversationHistory.objects.get(username=username_val)
@@ -192,15 +192,15 @@ def add_new_entry_generated_questions(all_generated_questions, username_val):
                 existing_record.all_generated_questions = str(combined_extra_ques)
                 existing_record.save()
                 return combined_extra_ques
-            else: 
+            else:
                 existing_record.all_generated_questions = str(all_generated_questions)
                 existing_record.save()
                 return all_generated_questions
-
+ 
         else:
             # Check if there is any entry for the username
             existing_record = ConversationHistory.objects.filter(username=username_val).first()
-
+ 
             if existing_record:
                 # Update existing entry
                 existing_record.all_generated_questions = str(all_generated_questions)
@@ -211,7 +211,7 @@ def add_new_entry_generated_questions(all_generated_questions, username_val):
                 new_entry = ConversationHistory(username=username_val, all_generated_questions=str(all_generated_questions))
                 new_entry.save()
                 return all_generated_questions
-
+ 
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
@@ -266,6 +266,55 @@ def retrieve_all_ques_answers(username_val):
         return {}
 
 
+def add_problem_statement(username_val, problem_statements):
+
+    try:
+        # Check if there is an existing entry with problem_statment for the username
+        existing_entry = ConversationHistory.objects.filter(username=username_val, problem_statements__isnull=False).exists()
+
+        if existing_entry:
+            # Update existing entry
+            existing_record = ConversationHistory.objects.get(username=username_val)
+            existing_record.problem_statements = str(problem_statements)
+            return problem_statements
+
+        else:
+            # Check if there is any entry for the username
+            existing_record = ConversationHistory.objects.filter(username=username_val).first()
+
+            if existing_record:
+                # Update existing entry
+                existing_record.problem_statements = str(problem_statements)
+                existing_record.save()
+                return problem_statements
+            else:
+                # Create a new entry
+                new_entry = ConversationHistory(username=username_val, all_generated_questions=str(problem_statements))
+                new_entry.save()
+                return problem_statements
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
+    return None
+
+
+def retrieve_all_problem_statements(username_val):
+
+    try: 
+        existing_record = ConversationHistory.objects.get(username=username_val)
+
+        if len(existing_record.problem_statements)>1 or len(existing_record.problem_statements)==1:
+
+            existing_problem_statements = eval(existing_record.problem_statements)
+
+            return [existing_problem_statements]
+        
+        else: 
+            return []
+    except: 
+        return []
 
 
 

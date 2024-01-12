@@ -12,7 +12,7 @@ from langchain.vectorstores import Pinecone
 import os
 
 from .all_agents import AllAgents
-from .database import retrieve_table, add_new_entry, add_new_entry_extra_responses, add_new_entry_ques_answers, retrieve_all_questions, add_new_entry_all_questions, retrieve_all_extra_responses, retrieve_all_ques_answers, retrieve_all_generated_questions, add_new_entry_generated_questions
+from .database import retrieve_table, add_new_entry, add_new_entry_extra_responses, add_new_entry_ques_answers, retrieve_all_questions, add_new_entry_all_questions, retrieve_all_extra_responses, retrieve_all_ques_answers, retrieve_all_generated_questions, add_new_entry_generated_questions, retrieve_all_problem_statements, add_problem_statement
 
 from .load_model import ModelHuggingFace
 import json
@@ -133,8 +133,8 @@ class QuesAnswer:
         
         return review_result
     
-    def get_first_ques(self, username_val):
-        # agent_reply = self.initialized_all_agents.questions[0]
+    def get_first_ques(self, username_val, problem_statement):
+        # agent_reply = self.initialized_all_agents.questions[0] 
         generated_questions = retrieve_all_generated_questions(username_val=username_val)
         if len(generated_questions)>1:
             print(f"Retrieved generated question in get_first_ques {generated_questions}") 
@@ -142,10 +142,26 @@ class QuesAnswer:
             return generated_questions[0]
         elif len(generated_questions)<1: 
             print("generating ques from get_questions_list")
-            generated_questions = self.initialized_all_agents.get_questions_list(problem_statement=os.getenv("PROBLEM_STATEMENT_2"))
+            # There are three methods of generating questions: 
+            # 1. Generic method -- .get_questions_list
+            # 2. RAG-based Ashok Leyland Questions -- .get_specific_questions
+            # 3. Pre-defined list of ques -- .get_hardcoded_ques
+            
+            # 1. Generic method -- .get_questions_list
+            #generated_questions = self.initialized_all_agents.get_questions_list(problem_statement=os.getenv("PROBLEM_STATEMENT_2"))
+
+            # 2. RAG-based Ashok Leyland Questions -- .get_specific_questions
+            # generated_questions = self.initialized_all_agents.get_specific_questions(problem_statement=problem_statement)
+            
+            # 3. Pre-defined list of ques -- .get_hardcoded_ques
+            generated_questions = self.initialized_all_agents.get_hardcoded_ques()
+            
+            print(f"received {generated_questions}")
+            print(type(generated_questions))
             add_new_entry_generated_questions(all_generated_questions=generated_questions, username_val=username_val)
             self.all_generated_questions = generated_questions
             return generated_questions[0]
+        
         else: 
             print("problem in getting first question")
             return None  
@@ -279,10 +295,10 @@ class GetSurveyAnswersFromUser:
         return self.initialized_utils.all_answers
     
 
-    def get_response_for_survey_ques(self, human_text=None, user_name_val=None):
+    def get_response_for_survey_ques(self, human_text=None, user_name_val=None, prob_statement=None):
 
-        if human_text is None:
-            ques_input = self.initialized_utils.get_first_ques(username_val=user_name_val)
+        if human_text is None and prob_statement is not None:
+            ques_input = self.initialized_utils.get_first_ques(username_val=user_name_val, problem_statement=prob_statement)
             self.all_questions.append(ques_input)
             human_msg_for_answragent = HumanMessage(content=f"""Avoid repeating the question to confirm. written that it is the first question.
 
@@ -296,6 +312,7 @@ class GetSurveyAnswersFromUser:
             add_new_entry(user_name=user_name_val, messages=store_messages)
             add_new_entry_all_questions(all_questions=self.all_questions, username_val=user_name_val)
             current_status = self.initialized_utils.get_current_ques_answer_status(username_val=user_name_val)
+            print(answr_agent_reply)
             return {
                 "llm_response": answr_agent_reply,
                 "current_status": current_status
@@ -519,3 +536,4 @@ class GetSurveyAnswersFromUser:
             return output 
         else: 
             return [] 
+
