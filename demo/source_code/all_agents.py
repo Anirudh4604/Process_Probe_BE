@@ -181,8 +181,13 @@ Self Discharge = WhC /3 before test − (Whpart 1 + Whpart 2 ) ×100% (13) WhC/3
 The result of this calculation is reported for comparison with the USABC target of less than 1% loss per month. (Note: The self-discharge test for a module with electronic cell balancing circuit etc. should be reported to show the cell self-discharge and any parasitic drain on the module.)
 '''
 
+        elif "survey" in problem_statement:
+            insurance_survey_questions = self.get_hardcoded_ques()
+            return insurance_survey_questions
+
         else: 
             test_manual_as_context = "generate generic question"
+        
         prompt_val = f'''Act as a technical investigating officer, who's task is to investigate by asking questions to find the reason of happening of problem or the cause of problem.
 
         problem statment: {problem_statement}

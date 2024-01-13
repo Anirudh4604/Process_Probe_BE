@@ -170,6 +170,7 @@ def get_llm_response_for_survey_ques(request):
         try:
             human_response=request.data.get('human_text')
             username=request.data.get('username')
+            problem_statement = request.data.get('problem_statment')
 
                 # data = json.loads(request.body.decode('utf-8'))
                 # print(f"this is {data}")

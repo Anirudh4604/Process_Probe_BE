@@ -1,21 +1,21 @@
-from demo.models import llm_messages, ConversationHistory
+from demo.models import LLMMessages, ConversationHistory, ProblemsTracker
 from langchain.schema import (HumanMessage, AIMessage, SystemMessage)
 
 
 def fetch_all_usernames():
-    # Use the Django ORM to query the llm_messages model for usernames
-    usernames = llm_messages.objects.values_list('username', flat=True)
+    # Use the Django ORM to query the LLMMessages model for usernames
+    usernames = LLMMessages.objects.values_list('username', flat=True)
     # print(list(usernames))
     return list(usernames)
 
 
 def update_table(user_name, new_messages):
     try:
-        message = llm_messages.objects.get(username=user_name)
+        message = LLMMessages.objects.get(username=user_name)
         message.messages = new_messages
         message.save()
         return True
-    except llm_messages.DoesNotExist:
+    except LLMMessages.DoesNotExist:
         return False
     
 
@@ -29,8 +29,8 @@ def add_new_entry(user_name, messages):
         # print(user_name)
         # print(all_users)
         new_messages = message_list
-        # Create a new llm_messages object and save it to the database
-        new_entry = llm_messages(username=user_name, messages=new_messages)
+        # Create a new LLMMessages object and save it to the database
+        new_entry = LLMMessages(username=user_name, messages=new_messages)
         new_entry.save()
     else:
         print("User already registered before")
@@ -39,7 +39,7 @@ def add_new_entry(user_name, messages):
 
 def retrieve_table(user_name):
     try:
-        message_entry = llm_messages.objects.get(username=user_name)
+        message_entry = LLMMessages.objects.get(username=user_name)
         messages = eval(message_entry.messages)
         
         all_messages = []
@@ -55,7 +55,7 @@ def retrieve_table(user_name):
 
         return all_messages
 
-    except llm_messages.DoesNotExist:
+    except LLMMessages.DoesNotExist:
         return []
     
 
@@ -176,63 +176,49 @@ def add_new_entry_all_questions(all_questions, username_val):
     return None
 
 
-def add_new_entry_generated_questions(all_generated_questions, username_val):
- 
+def add_new_entry_generated_questions(all_generated_questions, username_val, problem_statement):    
     try:
-        # Check if there is an existing entry with extra_responses for the username
-        existing_entry = ConversationHistory.objects.filter(username=username_val, all_generated_questions__isnull=False).exists()
- 
-        if existing_entry:
-            # Update existing entry
-            existing_record = ConversationHistory.objects.get(username=username_val)
-            # print(existing_record.all_questions)
-            if len(existing_record.all_generated_questions)>1:
-                existing_all_questions = eval(existing_record.all_generated_questions)
-                combined_extra_ques = existing_all_questions + all_generated_questions
-                existing_record.all_generated_questions = str(combined_extra_ques)
-                existing_record.save()
-                return combined_extra_ques
-            else:
-                existing_record.all_generated_questions = str(all_generated_questions)
-                existing_record.save()
-                return all_generated_questions
- 
-        else:
-            # Check if there is any entry for the username
-            existing_record = ConversationHistory.objects.filter(username=username_val).first()
- 
-            if existing_record:
-                # Update existing entry
-                existing_record.all_generated_questions = str(all_generated_questions)
-                existing_record.save()
-                return all_generated_questions
-            else:
-                # Create a new entry
-                new_entry = ConversationHistory(username=username_val, all_generated_questions=str(all_generated_questions))
-                new_entry.save()
-                return all_generated_questions
- 
+        new_entry = ProblemsTracker(username=username_val, generated_ques=str(all_generated_questions), problems=problem_statement)
+        new_entry.save()
+        return all_generated_questions
+
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
 
-def retrieve_all_generated_questions(username_val):
+def retrieve_all_generated_questions(username_val, problem_statement):
 
     try: 
-        existing_record = ConversationHistory.objects.get(username=username_val)
+        generated_ques = ProblemsTracker.objects.filter(username=username_val, problems=problem_statement)
+        generated_ques_list = list(generated_ques.values_list('generated_ques', flat=True))
+        print(f"existing entry: {generated_ques_list}")
+        # exiting_generated_questions = existing_entry.problems
+        return eval(generated_ques_list[0])
 
-        if len(existing_record.all_generated_questions)>1:
-
-            existing_all_generated_questions = eval(existing_record.all_generated_questions)
-
-            return existing_all_generated_questions
-        
-        else: 
-            return []
-    except: 
+    except Exception as e: 
+        print(e)
         return []
     
-
+def get_all_gen_questions(username_val, previous_ques):
+    generated_ques_entries = ProblemsTracker.objects.filter(username=username_val).values_list('generated_ques', flat=True)
+    # Converting the result to a list (if needed)
+    generated_ques_list = list(generated_ques_entries)
+    # Printing the result
+    if generated_ques_list:
+        print(f"Generated Questions for {username_val}: {generated_ques_list}")
+        previous_question = previous_ques
+        for each_ques_list in generated_ques_list: 
+            for each_ques_string in eval(each_ques_list): 
+                if previous_question in each_ques_string:
+                    print("found")
+                    return eval(each_ques_list)
+                else: 
+                    print("Not found")
+                    pass
+    else:
+        print(f"No generated questions found for {username_val}. Check 'get_all_gen_questions' to debug.")
+        return []
+    
 
 def retrieve_all_questions(username_val):
     
@@ -275,8 +261,11 @@ def add_problem_statement(username_val, problem_statements):
         if existing_entry:
             # Update existing entry
             existing_record = ConversationHistory.objects.get(username=username_val)
-            existing_record.problem_statements = str(problem_statements)
-            return problem_statements
+            existing_all_problem_statements = eval(existing_record.problem_statements)
+            combined_all_problem_statements = existing_all_problem_statements + problem_statements
+            existing_record.problem_statements = str(combined_all_problem_statements)
+            existing_record.save()
+            return combined_all_problem_statements
 
         else:
             # Check if there is any entry for the username
@@ -289,15 +278,13 @@ def add_problem_statement(username_val, problem_statements):
                 return problem_statements
             else:
                 # Create a new entry
-                new_entry = ConversationHistory(username=username_val, all_generated_questions=str(problem_statements))
+                new_entry = ConversationHistory(username=username_val, problem_statements=str(problem_statements))
                 new_entry.save()
                 return problem_statements
 
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
-
-    return None
 
 
 def retrieve_all_problem_statements(username_val):
@@ -309,13 +296,9 @@ def retrieve_all_problem_statements(username_val):
 
             existing_problem_statements = eval(existing_record.problem_statements)
 
-            return [existing_problem_statements]
+            return existing_problem_statements
         
         else: 
             return []
     except: 
         return []
-
-
-
-
