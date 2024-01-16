@@ -180,57 +180,61 @@ def get_llm_response_for_survey_ques(request):
                 # if 'human_text' in keys_list and 'username' in keys_list: 
                 #     username = data['username']
                 #     human_response = data['human_text']
+            
+
             run = GetSurveyAnswersFromUser(username=username)
             output = run.get_response_for_survey_ques(human_text=human_response, user_name_val=username)
             status_output = output['current_status']
             final_response = ""
-            print(f"debugukkkkkk{output['llm_response']}")
-            responses = output['llm_response'].split('''}        {''')
-            if len(responses) == 1 :
-                final_response = output['llm_response']
-            else:
-                for output in responses:
-                    try:
-                        final_resp=output.split('''"Final response":''')
-                        if len(final_resp)==1:
-                            if(final_resp[0]=='All questions asked'):
-                                final_resp=final_resp[0]
-                            else:
-                                final_resp=final_resp[0].split('''{"Thought" :''')[1][:-1]
-                        else:
-                            final_resp=final_resp[1][:-1]
+            test_output = output['llm_response']
+            final_response_to_pass = test_output
+            if "All questions asked" in test_output: 
+                    thoughts = "All questions asked"
+            else: 
+                try: 
+                    responses = output['llm_response'].split('''}        {''')
+                    if len(responses)>1: 
+                        print(f"responses: {responses}")
+                        print(f'thought1: {responses[0]+"}"}')
+                        thought_1 = json.loads(responses[0]+"}")
+                        print(f'thought2: {"{"+responses[1]}')
+                        thought_2 = json.loads("{"+responses[1])
+                        thoughts = [thought_1, thought_2]
+                        print(thoughts)
+                        final_response_to_pass = f"{thought_1['Final response']} \n \n {thought_2['Final response']}"
+                    else: 
+                        print(f"responses: {responses}")
+                        print(f'thought1: {responses[0]}')
+                        thought_1 = json.loads(responses[0])
+                        thoughts = [thought_1]
+                        final_response_to_pass = f"{thought_1['Final response']}"
+                except: 
+                    try: 
+                        responses = output['llm_response'].split('''}{''')
+                        if len(responses)>1: 
+                            print(f"responses: {responses}")
+                            print(f'thought1: {responses[0]+"}"}')
+                            thought_1 = json.loads(responses[0]+"}")
+                            print(f'thought2: {"{"+responses[1]}')
+                            thought_2 = json.loads("{"+responses[1])
+                            thoughts = [thought_1, thought_2]
+                            final_response_to_pass = f"{thought_1['Final response']} \n \n {thought_2['Final response']}"
+                            print(thoughts)
+                        else: 
+                            print(f"responses: {responses}")
+                            print(f'thought1: {responses[0]}')
+                            thought_1 = json.loads(responses[0])
+                            thoughts = [thought_1]
+                            final_response_to_pass = f"{thought_1['Final response']}"
+                    except: 
+                        thoughts = "AI Interpretation could not be fetched"
+                        final_response_to_pass = test_output
 
-                    except:
-                        final_resp=output.split('''"Final response" :''')
-                        if len(final_resp)==1:
-                            if(final_resp[0]=='All questions asked'):
-                                final_resp=final_resp[0]
-                            else:
-                                final_resp=final_resp[0].split('''{"Thought" :''')[1][:-1]
-                        else:
-                            final_resp=final_resp[1][:-1]
-
-
-                    print(f'debugu{final_resp}')
-                    final_response+=final_resp
-                    print(f'debuguk{final_response}')
-            
-            print(f'debugukkk{final_response}')
-
+            final_response = test_output
             return JsonResponse({"status":"success", 
-                                    "llm_response":f"{final_response}",
-                                    "status_output": status_output})    
-
-            # elif 'human_text' not in keys_list and 'username' in keys_list: 
-            #     username = data['username']
-            #     run = GetSurveyAnswersFromUser(username=username)
-            #     output = run.get_response_for_survey_ques(user_name_val=username)
-            #     return JsonResponse({"status":"success", 
-            #                          "llm response":f"{output}"})
-                            
-        #     else: 
-        #         return JsonResponse({"status":"failed",
-        #                              "error message" : "The payload should contain the username in the specified JSON format with correct key names."})
+                                    "llm_response":f"{final_response_to_pass}",
+                                    "status_output": status_output,
+                                    "Thought":thoughts})   
 
         except Exception as e: 
             print("Got error here")

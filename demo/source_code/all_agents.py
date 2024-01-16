@@ -235,7 +235,6 @@ The result of this calculation is reported for comparison with the USABC target 
         {
             "Thought" : "I have to simply ask the question but have to give a short brief set up to the question that i am going to ask",
             "Final response": "With this question i would like to know about your insurance cover, and past experiences
-            
             So can you answer: Are you currently insured? If so, what type of insurance do you have?"
         }''')
 
@@ -264,9 +263,7 @@ The result of this calculation is reported for comparison with the USABC target 
         AI_msg_for_agent = AIMessage(content='''
         {
             "Thought" : "I have to ask the question again. I have to give a short brief set up to the question that i am going to ask",
-            "Final response": "with this question, i would like to know about your past experince with your insurance company.
- 
-            So can you please answer: Have you ever filed a claim with your insurance company? If yes, please briefly describe the experience. "
+            "Final response": "with this question, i would like to know about your past experince with your insurance company. So can you please answer: Have you ever filed a claim with your insurance company? If yes, please briefly describe the experience. "
         }''')
 
         agent_for_answering.update_messages(message=AI_msg_for_agent)
@@ -309,10 +306,7 @@ The result of this calculation is reported for comparison with the USABC target 
         AI_msg_for_agent = AIMessage(content='''
         {
             "Thought" : "I have to simply ask the question but have to give a short brief set up to the question that i am going to ask",
-            "Final response": "
-            I would like to inquire about your medical insurance-related preferences and experiences.
-            
-            So can you answer: How important do you consider health insurance to be?"
+            "Final response": "I would like to inquire about your medical insurance-related preferences and experiences. So can you answer: How important do you consider health insurance to be?"
         }''')
 
         agent_for_answering.update_messages(message=AI_msg_for_agent)
@@ -340,9 +334,7 @@ The result of this calculation is reported for comparison with the USABC target 
         AI_msg_for_agent = AIMessage(content='''
         {
             "Thought" : "I have to ask the question again. I have to give a short brief set up to the question that i am going to ask",
-            "Final response": "Sine we are talking about health insurance, with this question, i would like to ask you about your current insurance coverage. 
- 
-            So can you please answer: Do you currently have health insurance coverage?"
+            "Final response": "Sine we are talking about health insurance, with this question, i would like to ask you about your current insurance coverage. So can you please answer: Do you currently have health insurance coverage?"
         }''')
 
         agent_for_answering.update_messages(message=AI_msg_for_agent)
@@ -370,9 +362,7 @@ The result of this calculation is reported for comparison with the USABC target 
         AI_msg_for_agent = AIMessage(content='''
         {
             "Thought" : "I have to ask the question again. I have to give a short brief set up to the question that i am going to ask",
-            "Final response": "I would like to know about your preferences to receive the information.
-                                     
-            So can you please answer: What is your preferred option to get information on your health insurance?"
+            "Final response": "I would like to know about your preferences to receive the information. So can you please answer: What is your preferred option to get information on your health insurance?"
         }''')
 
         agent_for_answering.update_messages(message=AI_msg_for_agent)
@@ -385,8 +375,7 @@ The result of this calculation is reported for comparison with the USABC target 
 
         AI_msg_for_agent = AIMessage(content='''{
             "Thought" : "I have to analyse the human answer and try to find the answer to the question. So the human said that there are multiple companies in the market. This talks about competition, but is no where related to the question that was asked about the preference to receive the information.",
-            "Final response" : "Thankyou for your response but i could not understand how multiple companies in the market is related to preference to receive the preference to receive the information. Can you please answer my question again?
-            here is my question: What is your preferred option to get information on your health insurance? "
+            "Final response" : "Thankyou for your response but i could not understand how multiple companies in the market is related to preference to receive the preference to receive the information. Can you please answer my question again? here is my question: What is your preferred option to get information on your health insurance? "
         }''')
 
         agent_for_answering.update_messages(message=AI_msg_for_agent)
